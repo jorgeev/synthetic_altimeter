@@ -1,37 +1,37 @@
 #from lib.mask_functions import altimetryMask
-import xarray as xr
 import numpy as np
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
-from glob import glob
-import scipy as cp
+from lib.mask_functions import AltimetryMask
 
-lat = np.linspace(17.5, 33.5, 1000)
+#lat = np.linspace(17.5, 33.5, 1000)
+lat = np.linspace(17.5, 50.5, 1000)
 lon = np.linspace(-98.4, -73.5, 1000)
-#grid_x, grid_y = np.mgrid[lon, lat]
 LL, NN = np.meshgrid(lon, lat)
+date = np.datetime64('2024-09-01')
 
-ff =  glob('/home/jevz/swot_simulator/karin/2024/*.nc')
-
-ds = xr.open_dataset(ff[0])
-ax = plt.axes(projection=ccrs.PlateCarree())
-ax.set_extent([-98.4,-73.5, 17.5, 33.5])
-ax.gridlines(label=True)
-ds['cross_track_distance'].plot.pcolormesh(x='longitude', y='latitude', ax=ax, add_colorbar=False, add_labels=False, cmap='PuBu')
-ax.coastlines()
-plt.show()
-
-ds2 = xr.open_dataset(ff[0])
-latswot = ds2.latitude.data.reshape(-1)
-lonswot = ds2.longitude.data.reshape(-1)-360
-z =  np.ones(latswot.shape[0]).reshape(-1)
-
-mm = cp.interpolate.griddata((lonswot, latswot), z, (LL, NN), fill_value=0)
-mm[mm!=0]=1
+gen =  AltimetryMask(lat, lon)
+gulfMask = gen.get_swot(date)
 
 ax = plt.axes(projection=ccrs.PlateCarree())
-mymask = ax.pcolormesh(lon, lat, mm.astype(int), cmap='Greys_r')
+#ax.set_extent
+ax.gridlines()
+final = ax.pcolormesh(lon, lat, gulfMask, cmap='Greys_r')#, vmin=0, vmax=1)
 ax.coastlines(color='yellow', linewidth=2)
 ax.coastlines(color='k', linewidth=0.8)
-plt.colorbar(mymask)
+plt.colorbar(final)
 plt.show()
+
+individual_masks = gen.gg
+
+for mm in individual_masks:
+    fig = plt.figure(figsize=(10.24,9.1), dpi=200)
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
+    final = ax.pcolormesh(lon, lat, mm, cmap='Greys_r', vmin=0, vmax=1)
+    ax.coastlines(color='yellow', linewidth=2)
+    ax.coastlines(color='k', linewidth=0.8)
+    plt.colorbar(final)
+    plt.show()
+    fig.clf()
+    ax.cla()
+    plt.close()
