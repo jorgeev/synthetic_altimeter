@@ -4,11 +4,12 @@ import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 from lib.mask_functions import AltimetryMask
 
-#lat = np.linspace(17.5, 33.5, 1000)
-lat = np.linspace(17.5, 50.5, 1000)
+lat = np.linspace(17.5, 33.5, 1000)
+#lat = np.linspace(17.5, 50.5, 1000)
 lon = np.linspace(-98.4, -73.5, 1000)
 LL, NN = np.meshgrid(lon, lat)
-date = np.datetime64('2024-09-01')
+#date = np.datetime64('2024-09-05')
+date = np.datetime64('2000-01-15')
 
 gen =  AltimetryMask(lat, lon)
 gulfMask = gen.get_swot(date)

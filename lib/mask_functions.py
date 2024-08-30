@@ -43,8 +43,8 @@ class AltimetryMask:
         DD = date.astype('datetime64[D]').astype(object).day
 
         # Create the file path pattern to search for files
-        fpath = join(self.path, f'_{YYYY}',
-                     f'SWOT_L2_LR_SSH_Expert_001_*_{YYYY}{MM:02d}{DD:02d}T*_*T*_DG10_01.nc')
+        fpath = join(self.path, f'{YYYY}',
+                     f'SWOT_L2_LR_SSH_Expert_???_*_{YYYY}{MM:02d}{DD:02d}T*_*T*_DG10_01.nc')
 
         # Return sorted list of file paths
         return sorted(glob(fpath))
@@ -117,8 +117,9 @@ class AltimetryMask:
         date_files = self.select_files(date)
         print('Reading files...')
         final_mask = self.read_files(date_files)
+        final_mask[final_mask != 0] = 1
         print('Done')
-        return final_mask
+        return final_mask.astype(int)
 
     def get_track(self, date):
         """
