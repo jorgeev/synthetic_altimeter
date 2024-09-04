@@ -73,7 +73,8 @@ class AltimetryMask:
                 
                 # Open the dataset
                 ds = xr.open_dataset(file)
-                print(ds)
+                
+                self.middle = int(ds.latitude.shape[1]/2)
                 # Extract and process latitude and longitude from the dataset
                 scan_lat = ds.latitude.data.reshape(-1)
                 scan_lon = ds.longitude.data.reshape(-1)
@@ -101,7 +102,7 @@ class AltimetryMask:
             np.ndarray: Interpolated data.
         """
         zz = np.ones(scan_lon.shape)
-        error = int(scan_lon.shape[1]/2)
+        error = self.middle
         zz[:, error-5:error+5 ] = np.nan
         mask = griddata((scan_lon, scan_lat), zz, (Lonm, Latm), fill_value=0)
         return mask
