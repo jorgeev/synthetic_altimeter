@@ -101,6 +101,8 @@ class AltimetryMask:
             np.ndarray: Interpolated data.
         """
         zz = np.ones(scan_lon.shape)
+        error = int(scan_lon.shape[1]/2)
+        zz[:, error-5:error+5 ] = np.nan
         mask = griddata((scan_lon, scan_lat), zz, (Lonm, Latm), fill_value=0)
         return mask
 

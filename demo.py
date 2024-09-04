@@ -11,7 +11,7 @@ LL, NN = np.meshgrid(lon, lat)
 #date = np.datetime64('2024-09-05')
 date = np.datetime64('2000-01-15')
 
-gen =  AltimetryMask(lat, lon)
+gen =  AltimetryMask(lat, lon,)
 gulfMask = gen.get_swot(date)
 
 ax = plt.axes(projection=ccrs.PlateCarree())
@@ -21,18 +21,18 @@ final = ax.pcolormesh(lon, lat, gulfMask, cmap='Greys_r')#, vmin=0, vmax=1)
 ax.coastlines(color='yellow', linewidth=2)
 ax.coastlines(color='k', linewidth=0.8)
 plt.colorbar(final)
-plt.show()
+plt.savefig('swot.png')
 
-individual_masks = gen.gg
+#individual_masks = gen.gg
 
-for mm in individual_masks:
-    fig = plt.figure(figsize=(10.24,9.1), dpi=200)
-    ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
-    final = ax.pcolormesh(lon, lat, mm, cmap='Greys_r', vmin=0, vmax=1)
-    ax.coastlines(color='yellow', linewidth=2)
-    ax.coastlines(color='k', linewidth=0.8)
-    plt.colorbar(final)
-    plt.show()
-    fig.clf()
-    ax.cla()
-    plt.close()
+# for mm in individual_masks:
+#     fig = plt.figure(figsize=(10.24,9.1), dpi=200)
+#     ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
+#     final = ax.pcolormesh(lon, lat, mm, cmap='Greys_r', vmin=0, vmax=1)
+#     ax.coastlines(color='yellow', linewidth=2)
+#     ax.coastlines(color='k', linewidth=0.8)
+#     plt.colorbar(final)
+#     plt.show()
+#     fig.clf()
+#     ax.cla()
+#     plt.close()
