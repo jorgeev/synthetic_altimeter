@@ -73,7 +73,7 @@ class AltimetryMask:
                 
                 # Open the dataset
                 ds = xr.open_dataset(file)
-                
+                print(ds)
                 # Extract and process latitude and longitude from the dataset
                 scan_lat = ds.latitude.data.reshape(-1)
                 scan_lon = ds.longitude.data.reshape(-1)
