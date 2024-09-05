@@ -1,6 +1,7 @@
 import xarray as xr
 import numpy as np
 from scipy.interpolate import griddata
+import scipy as cp
 from glob import glob
 from os.path import join
 
@@ -74,21 +75,38 @@ class AltimetryMask:
                 # Open the dataset
                 ds = xr.open_dataset(file)
                 
-                self.middle = int(ds.latitude.shape[1]/2)
+                # Swot_like mask
+                zz = ds.longitude.data.copy()
+                lon_nadir = ds.longitude_nadir.data.copy()
+                #middle_line = self.find_closest_mean(zz)
+                middle_line = self.find_nearest_index(zz, lon_nadir)
+                padding = 5
+                zz[:,:] = 1
+                for ii, idx in enumerate(middle_line):
+                    zz[ii, idx-padding:idx+padding] = 0
+                
                 # Extract and process latitude and longitude from the dataset
                 scan_lat = ds.latitude.data.reshape(-1)
                 scan_lon = ds.longitude.data.reshape(-1)
+                print('Lon data range')
+                print(np.max(scan_lon))
+                print(np.min(scan_lon))
                 scan_lon[scan_lon > 180] -= 360  # Convert longitudes to [-180, 180]
 
                 # Interpolate and add the data to the mask
-                mm = self.interp_data(scan_lon, scan_lat, Lonm, Latm)
+                #mm = self.interp_data(scan_lon, scan_lat, Lonm, Latm, zz.reshape(-1))
+                mm = self.interp_data_method2(scan_lon, scan_lat, Lonm, Latm, zz.reshape(-1))
+                print('')
+                print(np.nanmax(mm))
+                print(np.nanmin(mm))
                 self.gg.append(mm)
+                #mm[mm != 0] = 1
                 #mask += self.interp_data(scan_lon, scan_lat, Lonm, Latm)
                 mask += mm
 
         return mask
 
-    def interp_data(self, scan_lon, scan_lat, Lonm, Latm):
+    def interp_data(self, scan_lon, scan_lat, Lonm, Latm, zz):
         """
         Interpolates SWOT scan data onto the grid.
 
@@ -97,15 +115,51 @@ class AltimetryMask:
             scan_lat (np.ndarray): Flattened array of scan latitudes.
             Lonm (np.ndarray): Meshgrid of longitudes.
             Latm (np.ndarray): Meshgrid of latitudes.
-
+            zz (np.ndarray)): lattened array of masking data
         Returns:
             np.ndarray: Interpolated data.
         """
-        zz = np.ones(scan_lon.shape)
-        error = self.middle
-        zz[:, error-5:error+5 ] = np.nan
-        mask = griddata((scan_lon, scan_lat), zz, (Lonm, Latm), fill_value=0)
+        
+        mask = griddata((scan_lon, scan_lat), zz, (Lonm, Latm), fill_value=0, method='linear')
         return mask
+    
+    def interp_data_method2(self, scan_lon, scan_lat, Lonm, Latm, zz):
+        """
+        Interpolates SWOT scan data onto the grid.
+
+        Args:
+            scan_lon (np.ndarray): Flattened array of scan longitudes.
+            scan_lat (np.ndarray): Flattened array of scan latitudes.
+            Lonm (np.ndarray): Meshgrid of longitudes.
+            Latm (np.ndarray): Meshgrid of latitudes.
+            zz (np.ndarray)): lattened array of masking data
+        Returns:
+            np.ndarray: Interpolated data.
+        """
+        points = np.vstack((scan_lon, scan_lat)).T
+        tree = cp.spatial.KDTree(points)
+        new_points = np.vstack((Lonm.flatten(), Latm.flatten())).T
+        _, idx = tree.query(new_points)
+        mask = zz[idx].reshape(Lonm.shape)
+
+        return mask
+    
+    def find_closest_mean(self, A):
+        closest_indices = []
+        
+        for row in A:
+            mean_value = np.mean(row)  # Calculate the mean of the row
+            # Find the index of the value closest to the mean
+            closest_index = np.abs(row - mean_value).argmin()
+            closest_indices.append(closest_index)
+        
+        return closest_indices
+    
+    def find_nearest_index(self, lon, nadir):
+        central_index = []
+        for ii, idx in enumerate(nadir):
+            central_index.append(np.abs(lon[ii, : ] - idx).argmin())    
+        return central_index
 
     def get_swot(self, date):
         """
@@ -152,4 +206,7 @@ def parse_names(path, date):
                  f'SWOT_L2_LR_SSH_Expert_001_*_{YYYY}{MM:02d}{DD:02d}T*_*T*_DG10_01.nc')
 
     return sorted(glob(fpath))
+
+
+
 
