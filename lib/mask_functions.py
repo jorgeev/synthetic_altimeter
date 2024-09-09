@@ -78,24 +78,27 @@ class AltimetryMask:
                 # Swot_like mask
                 zz = ds.longitude.data.copy()
                 lon_nadir = ds.longitude_nadir.data.copy()
-                #middle_line = self.find_closest_mean(zz)
+
                 middle_line = self.find_nearest_index(zz, lon_nadir)
-                padding = 5
+                padding = 1
                 zz[:,:] = 1
                 for ii, idx in enumerate(middle_line):
                     zz[ii, idx-padding:idx+padding] = 0
                 
                 # Extract and process latitude and longitude from the dataset
-                scan_lat = ds.latitude.data.reshape(-1)
-                scan_lon = ds.longitude.data.reshape(-1)
+                scan_lat = ds.latitude.data
+                scan_lon = ds.longitude.data
+                ref_lon = scan_lon.copy()
+                zz, scan_lon, scan_lat = mask_borders(zz, scan_lon, scan_lat)
                 print('Lon data range')
                 print(np.max(scan_lon))
                 print(np.min(scan_lon))
                 scan_lon[scan_lon > 180] -= 360  # Convert longitudes to [-180, 180]
+                ref_lon [ref_lon > 180] -= 360   # Convert longitudes to [-180, 180]
 
                 # Interpolate and add the data to the mask
-                #mm = self.interp_data(scan_lon, scan_lat, Lonm, Latm, zz.reshape(-1))
-                mm = self.interp_data_method2(scan_lon, scan_lat, Lonm, Latm, zz.reshape(-1))
+                #mm = self.interp_data(scan_lon.reshape(-1), scan_lat.reshape(-1), Lonm, Latm, zz.reshape(-1))
+                mm = self.interp_data(scan_lon, scan_lat, Lonm, Latm, zz.reshape(-1))
                 print('')
                 print(np.nanmax(mm))
                 print(np.nanmin(mm))
@@ -209,4 +212,34 @@ def parse_names(path, date):
 
 
 
+def mask_borders(data, lon, lat):
+    l = data.shape
+    lateral = np.nanmax((lon[:,1:] - lon[:,:-1]), axis=1)
 
+    print(F'First lon, lat: {lon[0,0]},{lat[0,0]}')
+    print(F'Last lon, lat: {lon[-1,0]},{lat[-1,0]}')
+
+    lon2 = np.zeros([l[0], l[1]+4])
+    lon2[:, 2:-2] = lon
+    if lat[0, 0] > lat[-1, 0]:
+        lon2[:, 0] = lon2[:, 2] + 1.5 * np.absolute(lateral)
+        lon2[:, 1] = lon2[:, 2] + np.absolute(lateral)
+        lon2[:, -1] = lon2[:, -3] - np.absolute(lateral)
+        lon2[:, -2] = lon2[:, -3] - 1.5* np.absolute(lateral)
+    else:
+        lon2[:, 0] = lon2[:, 2] - 1.5 * np.absolute(lateral)
+        lon2[:, 1] = lon2[:, 2] - np.absolute(lateral)
+        lon2[:, -1] = lon2[:, -3] + np.absolute(lateral)
+        lon2[:, -2] = lon2[:, -3] + 1.5 * np.absolute(lateral)
+
+
+    lat2 = np.zeros([l[0], l[1]+4])
+    lat2[:, 2:-2] = lat
+    lat2[:, 0] = lat2[:, 2]
+    lat2[:, 1] = lat2[:, 2]
+    lat2[:, -1] = lat2[:, -3]
+    lat2[:, -2] = lat2[:, -3]
+
+    data2 = np.zeros([l[0], l[1]+4])
+    data2[:, 2:-2] = data
+    return data2.reshape(-1), lon2.reshape(-1), lat2.reshape(-1)
