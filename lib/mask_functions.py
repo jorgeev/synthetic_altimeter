@@ -102,7 +102,7 @@ class AltimetryMask:
                 print('')
                 print(np.nanmax(mm))
                 print(np.nanmin(mm))
-                self.gg.append(mm)
+                # self.gg.append(mm)
                 #mm[mm != 0] = 1
                 #mask += self.interp_data(scan_lon, scan_lat, Lonm, Latm)
                 mask += mm
@@ -190,6 +190,8 @@ class AltimetryMask:
         """
         pass
 
+        
+
 def parse_names(path, date):
     """
     Parses and retrieves the SWOT data file names based on the provided path and date.
@@ -243,3 +245,60 @@ def mask_borders(data, lon, lat):
     data2 = np.zeros([l[0], l[1]+4])
     data2[:, 2:-2] = data
     return data2.reshape(-1), lon2.reshape(-1), lat2.reshape(-1)
+
+def write_netcdf(date, mask, x, y, output_dir):
+    """
+    Writes the mask to a netcdf file.
+
+    Args:
+        date (np.datetime64): Date for which the mask is to be written.
+        mask (np.ndarray): Mask to be written.
+        x (np.ndarray): Longitude values.
+        y (np.ndarray): Latitude values.
+    """
+
+    YYYY = date.astype('datetime64[Y]').astype(object).year
+    MM = date.astype(object).month
+    DD = date.astype('datetime64[D]').astype(object).day
+
+    ds = create_dataset(mask, x, y)
+    print("Dataset created\n")
+    print(ds)
+    add_global_attributes(ds, YYYY, MM, DD)
+    add_variable_attributes(ds)
+    add_coordinate_attributes(ds)
+    print(f'{output_dir}/mask_{YYYY}{MM:02d}{DD:02d}.nc')
+    ds.to_netcdf(f'{output_dir}/mask_{YYYY}{MM:02d}{DD:02d}.nc', format='NETCDF4')
+    #print(f'Mask written to {output_dir}/mask_{YYYY}{MM:02d}{DD:02d}.nc')
+
+def create_dataset(mask, x, y):
+
+    return xr.Dataset(
+        data_vars=dict(mask=(("lat", "lon"), mask)),
+        coords=dict(lon=("lon", x), lat=("lat", y))
+    )
+
+def add_global_attributes(ds, YYYY, MM, DD):
+    ds.attrs['date'] = f'{YYYY}-{MM:02d}-{DD:02d}'
+    ds.attrs['description'] = 'SWOT mask created using SWOT simulator'
+
+def add_variable_attributes(ds):
+    ds['mask'].attrs.update({
+        'long_name': 'SWOT mask',
+        'units': '1',  # binary mask
+        '_FillValue': 0,
+        'coordinates': 'lon,lat',
+        'grid_mapping': 'geographic',
+        'standard_name': 'mask',
+        'valid_range': [0, 1]
+    })
+
+def add_coordinate_attributes(ds):
+    for coord, name, unit in [('lon', 'longitude', 'degrees_east'), 
+                              ('lat', 'latitude', 'degrees_north')]:
+        ds[coord].attrs.update({
+            'long_name': name,
+            'units': unit,
+            'standard_name': name,
+            'axis': coord.upper()
+        })
