@@ -3,8 +3,8 @@ import xarray as xr
 from lib.mask_functions import AltimetryMask, write_netcdf
 from multiprocessing import Pool, cpu_count
 
-lat = np.arange(17.5, 33.5, 2/60)
-lon = np.arange(-98.4, -73.5, 2/60)
+lat = np.arange(11.5, 33.5, 2/60)
+lon = np.arange(-98.4, -73.0, 2/60)
 print("lat.shape, lon.shape\n", lat.shape, lon.shape)
 LL, NN = np.meshgrid(lon, lat)
 
